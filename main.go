@@ -35,6 +35,7 @@ exp ::= 0 | 1 | -1 | ...     -- Integers
 // Interpreter
 
 func interpret_file(f string) {
+	panic("interpret_file not yet implemented")
 }
 
 // Examples

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"os"
+	"regexp"
 )
 
 // Tokens
@@ -32,12 +33,17 @@ const (
 	TokEOF
 )
 
+// Lexer compiled regexes
+
+var whitespace *regexp.Regexp = regexp.MustCompile("\\s")
+
 // Lexer
 
 type Lexer struct {
-	s       *string
-	tokType TokType
-	tok     bytes.Buffer // WriteString, String
+	s       string       // source code
+	cursor  int          // current position in source
+	tokType TokType      // current token type
+	tok     bytes.Buffer // current token string
 }
 
 func newLexer(f string) *Lexer {
@@ -46,7 +52,51 @@ func newLexer(f string) *Lexer {
 		panic(err)
 	}
 	c := string(code)
-	return &Lexer{&c, TokEOF, bytes.Buffer{}}
+	return &Lexer{c, 0, TokEOF, bytes.Buffer{}}
+}
+
+// next token
+func (l Lexer) next() (bool, error) {
+	// detect EOF
+	if l.cursor == len(l.s) {
+		l.tokType = TokEOF
+		l.tok.Reset()
+		return true, nil
+	}
+
+	// ignore whitespace
+	for whitespace.MatchString(l.s[l.cursor : l.cursor+1]) {
+		l.cursor++
+	}
+
+	// token matchers. cursor is only advanced on successful
+	switch {
+	case l.lex_int(): // integer literals
+	case l.lex_bool(): // boolean literals
+	case l.lex_ident(): // vars and keywords
+	case l.lex_operator(): // operators
+	default:
+		// TODO: return informative error message https://go.dev/doc/tutorial/handle-errors
+		panic("Lexer.next invalid token")
+	}
+
+	return true, nil
+}
+
+func (l Lexer) lex_int() bool {
+	return false
+}
+
+func (l Lexer) lex_bool() bool {
+	return false
+}
+
+func (l Lexer) lex_ident() bool {
+	return false
+}
+
+func (l Lexer) lex_operator() bool {
+	return false
 }
 
 // Parser
@@ -57,6 +107,9 @@ type Parser struct {
 
 func (p Parser) parse_file(f string) Program {
 	lexer := newLexer(f)
+
+	// debug
+	while
 
 	return Program{}
 }

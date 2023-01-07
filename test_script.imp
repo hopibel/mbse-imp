@@ -1,0 +1,25 @@
+x := 1;
+y := 10;
+while (x < y) {
+    if x < 5 && (x<42) {
+        print false;
+    } else {
+        print true;
+    };
+
+    x = x + 2*1 + -1;
+};
+
+x := false;
+y := 1;
+
+if x {
+    x = true;
+} else {
+    x := 1;
+    y = y + 1;
+};
+
+print y;
+x = y < 3;
+print x;

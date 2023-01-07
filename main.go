@@ -35,7 +35,9 @@ exp ::= 0 | 1 | -1 | ...     -- Integers
 // Interpreter
 
 func interpret_file(f string) {
-	panic("interpret_file not yet implemented")
+	parser := newParser()
+	program := parser.parse_file(f)
+	fmt.Println(program)
 }
 
 // Examples
@@ -69,7 +71,7 @@ func main() {
 	ex1()
 	ex2()
 	ex3()
-	fmt.Println()
+	fmt.Print("\n\n")
 
 	args := os.Args
 	if len(args) != 2 {
@@ -77,4 +79,5 @@ func main() {
 		os.Exit(1)
 	}
 
+	interpret_file(args[1])
 }

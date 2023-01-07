@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"regexp"
 )
@@ -29,13 +30,15 @@ const (
 	TokNot
 	TokEqual
 	TokLess
+	TokParenOpen
+	TokParenClose
 	TokName
 	TokEOF
 )
 
 // Lexer compiled regexes
 
-var whitespace *regexp.Regexp = regexp.MustCompile("\\s")
+var rWhitespace = regexp.MustCompile(`\s`)
 
 // Lexer
 
@@ -56,7 +59,7 @@ func newLexer(f string) *Lexer {
 }
 
 // next token
-func (l Lexer) next() (bool, error) {
+func (l *Lexer) next() (bool, error) {
 	// detect EOF
 	if l.cursor == len(l.s) {
 		l.tokType = TokEOF
@@ -65,7 +68,7 @@ func (l Lexer) next() (bool, error) {
 	}
 
 	// ignore whitespace
-	for whitespace.MatchString(l.s[l.cursor : l.cursor+1]) {
+	for rWhitespace.MatchString(string(l.s[l.cursor])) {
 		l.cursor++
 	}
 
@@ -77,39 +80,117 @@ func (l Lexer) next() (bool, error) {
 	case l.lex_operator(): // operators
 	default:
 		// TODO: return informative error message https://go.dev/doc/tutorial/handle-errors
-		panic("Lexer.next invalid token")
+		panic(fmt.Sprintf("Lexer.next: unexpected character at position %d:\n%s", l.cursor, l.s[l.cursor:]))
 	}
 
 	return true, nil
 }
 
-func (l Lexer) lex_int() bool {
+func (l *Lexer) lex_int() bool {
 	return false
 }
 
-func (l Lexer) lex_bool() bool {
+func (l *Lexer) lex_bool() bool {
 	return false
 }
 
-func (l Lexer) lex_ident() bool {
-	return false
+var rIdent = regexp.MustCompile(`^[a-z]\w*`)
+
+func (l *Lexer) lex_ident() bool {
+	// slurp ^[a-z]\w
+	loc := rIdent.FindStringIndex(l.s[l.cursor:])
+	if loc == nil {
+		return false
+	}
+	tok := l.s[loc[0]:loc[1]]
+	// test for keywords, else variable name
+	switch tok {
+	case "while":
+		l.tokType = TokWhile
+	case "if":
+		l.tokType = TokIf
+	case "else":
+		l.tokType = TokElse
+	case "print":
+		l.tokType = TokPrint
+	default: // variable name
+		l.tokType = TokName
+	}
+	l.tok.WriteString(tok)
+	l.cursor = loc[1]
+
+	return true
 }
 
-func (l Lexer) lex_operator() bool {
+func (l *Lexer) lex_operator() bool {
 	return false
 }
 
 // Parser
 
 type Parser struct {
-	s *string
+	lexer *Lexer
 }
 
-func (p Parser) parse_file(f string) Program {
-	lexer := newLexer(f)
+func newParser() *Parser {
+	return &Parser{nil}
+}
+
+func (p *Parser) parse_file(f string) Program {
+	p.lexer = newLexer(f)
 
 	// debug
-	while
+	for status, _ := p.lexer.next(); status && p.lexer.tokType != TokEOF; status, _ = p.lexer.next() {
+		switch p.lexer.tokType {
+		case TokSemicolon:
+			fmt.Println("TokSemicolon")
+		case TokBraceOpen:
+			fmt.Println("TokBraceOpen")
+		case TokBraceClose:
+			fmt.Println("TokBraceClose")
+		case TokDecl:
+			fmt.Println("TokDecl")
+		case TokAssign:
+			fmt.Println("TokAssign")
+		case TokWhile:
+			fmt.Println("TokWhile")
+		case TokIf:
+			fmt.Println("TokIf")
+		case TokElse:
+			fmt.Println("TokElse")
+		case TokPrint:
+			fmt.Println("TokPrint")
+		case TokInt:
+			fmt.Printf("TokInt: %s\n", p.lexer.tok.String())
+		case TokBool:
+			fmt.Printf("TokBool: %s\n", p.lexer.tok.String())
+		case TokPlus:
+			fmt.Println("TokPlus")
+		case TokMult:
+			fmt.Println("TokMult")
+		case TokOr:
+			fmt.Println("TokOr")
+		case TokAnd:
+			fmt.Println("TokAnd")
+		case TokNot:
+			fmt.Println("TokNot")
+		case TokEqual:
+			fmt.Println("TokEqual")
+		case TokLess:
+			fmt.Println("TokLess")
+		case TokParenOpen:
+			fmt.Println("TokParenOpen")
+		case TokParenClose:
+			fmt.Println("TokParenClose")
+		case TokName:
+			fmt.Printf("TokName: %s\n", p.lexer.tok.String())
+		case TokEOF:
+			panic("lexer test should not reach EOF")
+		default:
+			panic("unrecognized token")
+		}
+		fmt.Println("cursor:", p.lexer.cursor)
+	}
 
 	return Program{}
 }

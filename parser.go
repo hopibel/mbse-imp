@@ -10,9 +10,9 @@ import (
 // IMP parser grammar
 
 /*
-prog    ::= stmts
-block   ::= "{" stmts "}"
-stmts   ::= stmt ";" stmts
+prog    ::= seq
+block   ::= "{" seq "}"
+seq     ::= stmt ";" seq
           | stmt ";"
 stmt    ::= restTMP
 */
@@ -200,7 +200,7 @@ func (l *Lexer) lex_operator() bool {
 		l.tokType = TokEqual
 	case "<":
 		l.tokType = TokLess
-	default: // special case: =[^=]
+	default: // assignment =
 		l.tokType = TokAssign
 		tok = string(s[loc[0]])
 		loc[1]--
@@ -306,11 +306,49 @@ func newParser() *Parser {
 	return &Parser{nil}
 }
 
-func (p *Parser) parse_file(f string) Program {
+func (p *Parser) parse_file(f string) (Program, bool) {
 	p.lexer = newLexer(f)
-
-	return Program{}
+	p.lexer.next()
+	return p.parse_prog()
 }
+
+func (p *Parser) parse_prog() (Program, bool) {
+	seq, status := p.parse_seq()
+	return Program(*seq), status
+}
+
+func (p *Parser) parse_seq() (*Seq, bool) {
+	// TODO:
+	// parse stmt
+	// check for ";"
+	// return if EOF, else parse seq again
+	panic("not yet implemented")
+
+	p.parse_stmt()
+	// check for ";"
+	if p.lexer.tokType != TokSemicolon {
+		return nil, false
+	}
+	p.lexer.next()
+	if p.lexer.tokType != TokEOF {
+		p.parse_seq()
+		return nil, false
+	}
+	return nil, false
+}
+
+func (p *Parser) parse_stmt() (*restTMP, bool) {
+	buf := bytes.Buffer{}
+	for p.lexer.tokType != TokSemicolon {
+		buf.Write(p.lexer.tok.Bytes())
+		buf.WriteByte(' ')
+		p.lexer.next()
+	}
+	println("Parsed statement:", buf.String())
+	return nil, true
+}
+
+type restTMP string
 
 // Helper functions to build ASTs by hand
 

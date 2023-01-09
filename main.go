@@ -35,11 +35,11 @@ exp ::= 0 | 1 | -1 | ...     -- Integers
 // Interpreter
 
 func interpret_file(f string) {
-	lexer := newLexer(f)
-	lexer.lex_file()
-	// parser := newParser()
-	// program := parser.parse_file(f)
-	// fmt.Println(program)
+	// lexer := newLexer(f)
+	// lexer.lex_file()
+	parser := newParser()
+	program := parser.parse_file(f)
+	fmt.Println(program)
 }
 
 // Examples

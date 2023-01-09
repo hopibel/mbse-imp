@@ -73,12 +73,6 @@ type ValState map[string]Val
 // Value State is a mapping from variable names to types
 type TyState map[string]Type
 
-// Program
-
-type Program struct {
-	// TODO: helpers to read code and create parser
-}
-
 // Interface
 
 type Exp interface {
@@ -96,6 +90,7 @@ type Stmt interface {
 // Statement cases (incomplete)
 
 type Seq [2]Stmt
+type Program Seq
 type Decl struct {
 	lhs string
 	rhs Exp

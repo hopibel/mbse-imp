@@ -10,7 +10,7 @@ import (
 /*
 vars       Variable names, start with lower-case letter
 
-prog      ::= block
+prog      ::= statement
 block     ::= "{" statement "}"
 statement ::=  statement ";" statement           -- Command sequence
             |  vars ":=" exp                     -- Variable declaration
@@ -35,9 +35,11 @@ exp ::= 0 | 1 | -1 | ...     -- Integers
 // Interpreter
 
 func interpret_file(f string) {
-	parser := newParser()
-	program := parser.parse_file(f)
-	fmt.Println(program)
+	lexer := newLexer(f)
+	lexer.lex_file()
+	// parser := newParser()
+	// program := parser.parse_file(f)
+	// fmt.Println(program)
 }
 
 // Examples
@@ -68,10 +70,10 @@ func ex3() {
 }
 
 func main() {
-	ex1()
-	ex2()
-	ex3()
-	fmt.Print("\n\n")
+	// ex1()
+	// ex2()
+	// ex3()
+	// fmt.Print("\n\n")
 
 	args := os.Args
 	if len(args) != 2 {

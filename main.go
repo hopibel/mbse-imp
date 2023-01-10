@@ -38,8 +38,12 @@ func interpret_file(f string) {
 	// lexer := newLexer(f)
 	// lexer.lex_file()
 	parser := newParser()
-	program := parser.parse_file(f)
-	fmt.Println(program)
+	prog, err := parser.parse_file(f)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Println("Failed to parse", f)
+	}
+	fmt.Println(prog)
 }
 
 // Examples

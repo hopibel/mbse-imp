@@ -90,7 +90,7 @@ type Stmt interface {
 // Statement cases (incomplete)
 
 type Seq [2]Stmt
-type Program Seq
+type Program Stmt
 type Decl struct {
 	lhs string
 	rhs Exp
@@ -100,7 +100,8 @@ type Assign struct {
 	rhs Exp
 }
 type While struct {
-	// TODO
+	cond Exp
+	body Stmt
 }
 type IfThenElse struct {
 	cond     Exp
@@ -108,7 +109,7 @@ type IfThenElse struct {
 	elseStmt Stmt
 }
 type Print struct {
-	// TODO
+	exp Exp
 }
 
 // Expression cases

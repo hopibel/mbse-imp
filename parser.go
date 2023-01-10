@@ -14,7 +14,11 @@ prog    ::= seq
 block   ::= "{" seq "}"
 seq     ::= stmt ";" seq
           | stmt ";"
-stmt    ::= restTMP
+stmt    ::= vars ":=" exp
+          | vars "=" exp
+          | "while" exp block
+          | "if" exp block "else" block
+          | "print" exp
 */
 
 // Tokens
@@ -306,49 +310,85 @@ func newParser() *Parser {
 	return &Parser{nil}
 }
 
-func (p *Parser) parse_file(f string) (Program, bool) {
+func (p *Parser) parse_file(f string) (Program, error) {
 	p.lexer = newLexer(f)
 	p.lexer.next()
 	return p.parse_prog()
 }
 
-func (p *Parser) parse_prog() (Program, bool) {
-	seq, status := p.parse_seq()
-	return Program(*seq), status
+func (p *Parser) parse_prog() (Program, error) {
+	prog, err := p.parse_seq()
+	return (Program)(prog), err
 }
 
-func (p *Parser) parse_seq() (*Seq, bool) {
-	// TODO:
-	// parse stmt
-	// check for ";"
-	// return if EOF, else parse seq again
-	panic("not yet implemented")
-
-	p.parse_stmt()
+func (p *Parser) parse_seq() (Stmt, error) {
+	stmt1, err := p.parse_stmt()
+	if err != nil {
+		return Seq{}, err
+	}
 	// check for ";"
 	if p.lexer.tokType != TokSemicolon {
-		return nil, false
+		return Seq{}, fmt.Errorf("expected semicolon on line %d, found %s", p.lexer.line, p.lexer.tok.String())
 	}
 	p.lexer.next()
+	// stop if EOF, else parse seq again
 	if p.lexer.tokType != TokEOF {
-		p.parse_seq()
-		return nil, false
+		stmt2, err := p.parse_seq()
+		return Seq{stmt1, stmt2}, err
 	}
-	return nil, false
+	return stmt1, nil
 }
 
-func (p *Parser) parse_stmt() (*restTMP, bool) {
-	buf := bytes.Buffer{}
-	for p.lexer.tokType != TokSemicolon {
-		buf.Write(p.lexer.tok.Bytes())
-		buf.WriteByte(' ')
+func (p *Parser) parse_stmt() (Stmt, error) {
+	// TODO
+	switch p.lexer.tokType {
+	case TokName:
+		lhs := p.lexer.tok.String()
 		p.lexer.next()
+		switch p.lexer.tokType {
+		case TokDecl:
+			p.lexer.next()
+			rhs, err := p.parse_exp()
+			return Decl{lhs, rhs}, err
+		case TokAssign:
+			p.lexer.next()
+			rhs, err := p.parse_exp()
+			return Assign{lhs, rhs}, err
+		default:
+			return Seq{}, fmt.Errorf("expected declaration or assignment on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+		}
+	case TokWhile:
+		p.lexer.next()
+		cond, err := p.parse_exp()
+		if err != nil {
+			return Seq{}, err
+		}
+		body, err := p.parse_block()
+		return While{cond, body}, err
+	case TokIf:
+		p.lexer.next()
+		cond, err := p.parse_exp()
+		if err != nil {
+			return Seq{}, err
+		}
+		thenStmt, err := p.parse_block()
+		if err != nil {
+			return Seq{}, err
+		}
+		if p.lexer.tokType != TokElse {
+			return Seq{}, fmt.Errorf("expected \"else\" on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+		}
+		p.lexer.next()
+		elseStmt, err := p.parse_block()
+		return IfThenElse{cond, thenStmt, elseStmt}, err
+	case TokPrint:
+		p.lexer.next()
+		exp, err := p.parse_exp()
+		return Print{exp}, err
+	default:
+		return Seq{}, fmt.Errorf("expected name or keyword on line %d, found %s", p.lexer.line, p.lexer.tok.String())
 	}
-	println("Parsed statement:", buf.String())
-	return nil, true
 }
-
-type restTMP string
 
 // Helper functions to build ASTs by hand
 

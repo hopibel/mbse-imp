@@ -19,6 +19,35 @@ stmt    ::= vars ":=" exp
           | "while" exp block
           | "if" exp block "else" block
           | "print" exp
+exp     ::= exp2 comp
+comp    ::= "==" exp2 comp
+          | "<" exp2 comp
+          | epsilon
+exp2    ::= term exp3
+exp3    ::= "+" term exp3
+          | "||" term exp3
+          | epsilon
+term    ::= factor term2
+term2   ::= "*" factor term2
+          | "&&" factor term2
+          | epsilon
+factor  ::= lit | vars
+          | "!" factor
+          | "(" exp ")"
+lit     ::= 0 | 1 | -1 | ...
+          | "true" | "false"
+
+// OLD
+exp     ::= exp "+" exp
+          | exp "*" exp
+          | exp "||" exp
+          | exp "&&" exp
+          | "!" exp
+          | exp "==" exp
+          | exp "<" exp
+          | "(" exp ")"
+          | lit
+          | vars
 */
 
 // Tokens
@@ -340,7 +369,7 @@ func (p *Parser) parse_seq() (Stmt, error) {
 }
 
 func (p *Parser) parse_stmt() (Stmt, error) {
-	// TODO
+	// TODO: impl missing
 	switch p.lexer.tokType {
 	case TokName:
 		lhs := p.lexer.tok.String()
@@ -388,6 +417,27 @@ func (p *Parser) parse_stmt() (Stmt, error) {
 	default:
 		return Seq{}, fmt.Errorf("expected name or keyword on line %d, found %s", p.lexer.line, p.lexer.tok.String())
 	}
+}
+
+func (p *Parser) parse_exp() (Exp, error) {
+	exp2, err := p.parse_exp2()
+	if err != nil {
+		return exp2, err
+	}
+	exp, err := p.parse_comp(exp2)
+	return exp, err
+}
+
+func (p *Parser) parse_comp(lhs Exp) (Exp, error) {
+	switch p.lexer.tokType {
+	case TokEqual:
+	case TokLess:
+	default:
+	}
+}
+
+func (p *Parser) parse_exp2() (Exp, error) {
+
 }
 
 // Helper functions to build ASTs by hand

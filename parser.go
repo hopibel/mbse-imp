@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 )
 
 // IMP parser grammar
@@ -36,18 +37,6 @@ factor  ::= lit | vars
           | "(" exp ")"
 lit     ::= 0 | 1 | -1 | ...
           | "true" | "false"
-
-// OLD
-exp     ::= exp "+" exp
-          | exp "*" exp
-          | exp "||" exp
-          | exp "&&" exp
-          | "!" exp
-          | exp "==" exp
-          | exp "<" exp
-          | "(" exp ")"
-          | lit
-          | vars
 */
 
 // Tokens
@@ -419,6 +408,20 @@ func (p *Parser) parse_stmt() (Stmt, error) {
 	}
 }
 
+func (p *Parser) parse_block() (Stmt, error) {
+	if p.lexer.tokType != TokBraceOpen {
+		return Seq{}, fmt.Errorf("expected left curly brace before block on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+	}
+	p.lexer.next()
+	block, err := p.parse_seq()
+	if err != nil {
+		return block, err
+	} else if p.lexer.tokType != TokBraceClose {
+		return block, fmt.Errorf("expected right curly brace after block on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+	}
+	return block, err
+}
+
 func (p *Parser) parse_exp() (Exp, error) {
 	exp2, err := p.parse_exp2()
 	if err != nil {
@@ -431,13 +434,124 @@ func (p *Parser) parse_exp() (Exp, error) {
 func (p *Parser) parse_comp(lhs Exp) (Exp, error) {
 	switch p.lexer.tokType {
 	case TokEqual:
+		p.lexer.next()
+		rhs, err := p.parse_exp2()
+		if err != nil {
+			return rhs, err
+		}
+		ret := Equal{lhs, rhs}
+		return p.parse_comp(ret)
 	case TokLess:
+		p.lexer.next()
+		rhs, err := p.parse_exp2()
+		if err != nil {
+			return rhs, err
+		}
+		ret := Less{lhs, rhs}
+		return p.parse_comp(ret)
 	default:
+		return lhs, nil
 	}
 }
 
 func (p *Parser) parse_exp2() (Exp, error) {
+	term, err := p.parse_term()
+	if err != nil {
+		return term, err
+	}
+	exp, err := p.parse_exp3(term)
+	return exp, err
+}
 
+func (p *Parser) parse_exp3(lhs Exp) (Exp, error) {
+	tok := p.lexer.tokType
+	if tok != TokPlus && tok != TokOr {
+		return lhs, nil
+	}
+	p.lexer.next()
+	rhs, err := p.parse_term()
+	if err != nil {
+		return rhs, err
+	}
+	switch tok {
+	case TokPlus:
+		return p.parse_exp3(Plus([2]Exp{lhs, rhs}))
+	case TokOr:
+		return p.parse_exp3(Or([2]Exp{lhs, rhs}))
+	default:
+		panic("should not reach")
+	}
+}
+
+func (p *Parser) parse_term() (Exp, error) {
+	factor, err := p.parse_factor()
+	if err != nil {
+		return factor, err
+	}
+	return p.parse_term2(factor)
+}
+
+func (p *Parser) parse_term2(lhs Exp) (Exp, error) {
+	tok := p.lexer.tokType
+	if tok != TokMult && tok != TokAnd {
+		return lhs, nil
+	}
+	p.lexer.next()
+	rhs, err := p.parse_factor()
+	if err != nil {
+		return rhs, err
+	}
+	switch tok {
+	case TokMult:
+		return p.parse_term2(Mult([2]Exp{lhs, rhs}))
+	case TokAnd:
+		return p.parse_term2(And([2]Exp{lhs, rhs}))
+	default:
+		panic("should not reach")
+	}
+}
+
+func (p *Parser) parse_factor() (Exp, error) {
+	switch p.lexer.tokType {
+	case TokInt:
+		num, err := strconv.Atoi(p.lexer.tok.String())
+		if err != nil {
+			return Num(0), err
+		}
+		p.lexer.next()
+		return Num(num), nil
+	case TokBool:
+		val := p.lexer.tok.String()
+		p.lexer.next()
+		switch val {
+		case "true":
+			return Bool(true), nil
+		case "false":
+			return Bool(false), nil
+		default:
+			panic("should not reach") // lexer already checked true/false
+		}
+	case TokName:
+		name := Var(p.lexer.tok.String())
+		p.lexer.next()
+		return name, nil
+	case TokNot:
+		p.lexer.next()
+		factor, err := p.parse_factor()
+		return Not(factor), err
+	case TokParenOpen:
+		p.lexer.next()
+		exp, err := p.parse_exp()
+		if err != nil {
+			return exp, err
+		} else if p.lexer.tokType != TokParenClose {
+			return exp, fmt.Errorf("expected close parenthesis on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+		}
+		p.lexer.next()
+		return exp, err
+	default:
+		return Plus{}, fmt.Errorf("expected value or expression on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+	}
 }
 
 // Helper functions to build ASTs by hand

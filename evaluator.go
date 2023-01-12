@@ -4,6 +4,21 @@ import "fmt"
 
 // Evaluator
 
+// Statements
+
+// Maps are represented via pointers.
+// Hence, maps are passed by "reference" and the update is visible for the caller as well.
+func (decl Decl) eval(s ValState) {
+	v := decl.rhs.eval(s)
+	x := (string)(decl.lhs)
+	s[x] = v
+}
+
+func (assign Assign) eval(s ValState) {
+	v := assign.rhs.eval(s)
+	// TODO: lookup, overwrite
+}
+
 func (stmt Seq) eval(s ValState) {
 	stmt[0].eval(s)
 	stmt[1].eval(s)
@@ -23,6 +38,8 @@ func (ite IfThenElse) eval(s ValState) {
 	}
 
 }
+
+// Expressions
 
 func (x Bool) eval(s ValState) Val {
 	return mkBool((bool)(x))

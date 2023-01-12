@@ -66,6 +66,46 @@ func showType(t Type) string {
 	return s
 }
 
+// Scopes and Environment
+// Scope is a mapping from variable names to values
+// Env is a stack of multiple Scopes
+type Scope map[string]Val
+type Env []Scope
+
+func newEnv() Env {
+	return Env{make(Scope)}
+}
+
+// lookup() traverses the stack and returns the first mapping found or undefined
+func (env Env) lookup(name string) Val {
+	for i := len(env) - 1; i >= 0; i-- {
+		if val, ok := env[i][name]; ok {
+			return val
+		}
+	}
+	return mkUndefined()
+}
+
+// declare new value mapping in current scope
+// masks previous declarations in outer scopes until current scope ends
+// overwrites previous declarations in same scope
+func (env Env) declare(name string, val Val) {
+	env[len(env)-1][name] = val
+}
+
+// assign new value to existing mapping
+// returns false if types don't match
+func (env Env) assign(name string, new_val Val) bool {
+	for i := len(env) - 1; i >= 0; i-- {
+		val, ok := env[i][name]
+		if ok && val.flag == new_val.flag {
+			env[i][name] = new_val
+			return true
+		}
+	}
+	return false
+}
+
 // TODO: needs to be stack for local scopes
 // Value State is a mapping from variable names to values
 type ValState map[string]Val
@@ -136,14 +176,6 @@ func (stmt Seq) pretty() string {
 
 func (decl Decl) pretty() string {
 	return decl.lhs + " := " + decl.rhs.pretty()
-}
-
-// Maps are represented via pointers.
-// Hence, maps are passed by "reference" and the update is visible for the caller as well.
-func (decl Decl) eval(s ValState) {
-	v := decl.rhs.eval(s)
-	x := (string)(decl.lhs)
-	s[x] = v
 }
 
 // type check

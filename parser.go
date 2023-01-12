@@ -13,8 +13,9 @@ import (
 /*
 prog    ::= seq
 block   ::= "{" seq "}"
-seq     ::= stmt ";" seq
-          | stmt ";"
+seq     ::= stmt ";" seq2
+seq2    ::= stmt ";" seq2
+          | epsilon
 stmt    ::= vars ":=" exp
           | vars "=" exp
           | "while" exp block
@@ -264,6 +265,7 @@ func (l *Lexer) lex_semi() bool {
 
 // debug method to test tokenizer/lexer
 func (l *Lexer) lex_file() {
+	fmt.Println("Token stream:")
 	for status, _ := l.next(); status && l.tokType != TokEOF; status, _ = l.next() {
 		switch l.tokType {
 		case TokSemicolon:
@@ -328,6 +330,10 @@ func newParser() *Parser {
 	return &Parser{nil}
 }
 
+func (p *Parser) err_expected(what string) error {
+	return fmt.Errorf("expected %s on line %d, found %s", what, p.lexer.line, p.lexer.tok.String())
+}
+
 func (p *Parser) parse_file(f string) (Program, error) {
 	p.lexer = newLexer(f)
 	p.lexer.next()
@@ -340,21 +346,37 @@ func (p *Parser) parse_prog() (Program, error) {
 }
 
 func (p *Parser) parse_seq() (Stmt, error) {
-	stmt1, err := p.parse_stmt()
+	stmt, err := p.parse_stmt()
 	if err != nil {
-		return Seq{}, err
+		return stmt, err
 	}
 	// check for ";"
 	if p.lexer.tokType != TokSemicolon {
-		return Seq{}, fmt.Errorf("expected semicolon on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+		return stmt, p.err_expected("semicolon")
 	}
 	p.lexer.next()
-	// stop if EOF, else parse seq again
-	if p.lexer.tokType != TokEOF {
-		stmt2, err := p.parse_seq()
-		return Seq{stmt1, stmt2}, err
+	// seq2
+	return p.parse_seq2(stmt)
+}
+
+func (p *Parser) parse_seq2(stmt Stmt) (Stmt, error) {
+	// epsilon if next token is close brace or EOF
+	if tok := p.lexer.tokType; tok == TokBraceClose || tok == TokEOF {
+		return stmt, nil
 	}
-	return stmt1, nil
+	// otherwise parse stmt ; seq2
+	stmt2, err := p.parse_stmt()
+	if err != nil {
+		return Seq{stmt, stmt2}, err
+	}
+	// check for ";"
+	if p.lexer.tokType != TokSemicolon {
+		return Seq{stmt, stmt2}, p.err_expected("semicolon")
+	}
+	p.lexer.next()
+	// seq2
+	seq2, err := p.parse_seq2(stmt2)
+	return Seq{stmt, seq2}, err
 }
 
 func (p *Parser) parse_stmt() (Stmt, error) {
@@ -373,7 +395,7 @@ func (p *Parser) parse_stmt() (Stmt, error) {
 			rhs, err := p.parse_exp()
 			return Assign{lhs, rhs}, err
 		default:
-			return Seq{}, fmt.Errorf("expected declaration or assignment on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+			return Seq{}, p.err_expected("declaration or assignment")
 		}
 	case TokWhile:
 		p.lexer.next()
@@ -394,7 +416,7 @@ func (p *Parser) parse_stmt() (Stmt, error) {
 			return Seq{}, err
 		}
 		if p.lexer.tokType != TokElse {
-			return Seq{}, fmt.Errorf("expected \"else\" on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+			return Seq{}, p.err_expected("keyword \"else\"")
 		}
 		p.lexer.next()
 		elseStmt, err := p.parse_block()
@@ -404,21 +426,22 @@ func (p *Parser) parse_stmt() (Stmt, error) {
 		exp, err := p.parse_exp()
 		return Print{exp}, err
 	default:
-		return Seq{}, fmt.Errorf("expected name or keyword on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+		return Seq{}, p.err_expected("name or keyword")
 	}
 }
 
 func (p *Parser) parse_block() (Stmt, error) {
 	if p.lexer.tokType != TokBraceOpen {
-		return Seq{}, fmt.Errorf("expected left curly brace before block on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+		return Seq{}, p.err_expected("\"{\"")
 	}
 	p.lexer.next()
 	block, err := p.parse_seq()
 	if err != nil {
 		return block, err
 	} else if p.lexer.tokType != TokBraceClose {
-		return block, fmt.Errorf("expected right curly brace after block on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+		return block, p.err_expected("\"}\"")
 	}
+	p.lexer.next()
 	return block, err
 }
 
@@ -545,12 +568,12 @@ func (p *Parser) parse_factor() (Exp, error) {
 		if err != nil {
 			return exp, err
 		} else if p.lexer.tokType != TokParenClose {
-			return exp, fmt.Errorf("expected close parenthesis on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+			return exp, p.err_expected("\")\"")
 		}
 		p.lexer.next()
 		return exp, err
 	default:
-		return Plus{}, fmt.Errorf("expected value or expression on line %d, found %s", p.lexer.line, p.lexer.tok.String())
+		return Plus{}, p.err_expected("value or expression")
 	}
 }
 

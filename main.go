@@ -37,13 +37,14 @@ exp ::= 0 | 1 | -1 | ...     -- Integers
 func interpret_file(f string) {
 	lexer := newLexer(f)
 	lexer.lex_file()
-	// parser := newParser()
-	// prog, err := parser.parse_file(f)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	fmt.Println("Failed to parse", f)
-	// }
-	// fmt.Println(prog)
+	fmt.Println()
+	parser := newParser()
+	prog, err := parser.parse_file(f)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Println("Failed to parse", f)
+	}
+	fmt.Println(prog)
 }
 
 // Examples

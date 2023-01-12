@@ -44,7 +44,8 @@ func interpret_file(f string) {
 		fmt.Println(err)
 		fmt.Println("Failed to parse", f)
 	}
-	fmt.Println(prog)
+	fmt.Println("Pretty print AST:")
+	fmt.Println(prog.pretty())
 }
 
 // Examples

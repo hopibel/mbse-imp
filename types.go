@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"strings"
 )
 
 // Values
@@ -127,7 +128,7 @@ type Stmt interface {
 	check(t TyState) bool
 }
 
-// Statement cases (incomplete)
+// Statement cases
 
 type Seq [2]Stmt
 type Program Stmt
@@ -171,7 +172,11 @@ type Var string
 // pretty print
 
 func (stmt Seq) pretty() string {
-	return stmt[0].pretty() + "; " + stmt[1].pretty()
+	ret := stmt[0].pretty() + ";\n" + stmt[1].pretty()
+	if ret[len(ret)-1] != ';' {
+		ret += ";"
+	}
+	return ret
 }
 
 func (decl Decl) pretty() string {
@@ -183,18 +188,30 @@ func (assign Assign) pretty() string {
 }
 
 func (while While) pretty() string {
-	panic("not yet implemented")
-	return ""
+	ret := "while " + while.cond.pretty() + " {\n" +
+		"\t" + strings.ReplaceAll(while.body.pretty(), "\n", "\n\t")
+	if ret[len(ret)-1] != ';' {
+		ret += ";"
+	}
+	return ret + "\n}"
 }
 
 func (ite IfThenElse) pretty() string {
-	panic("not yet implemented")
-	return ""
+	ret := "if " + ite.cond.pretty() + " {\n" +
+		"\t" + strings.ReplaceAll(ite.thenStmt.pretty(), "\n", "\n\t")
+	if ret[len(ret)-1] != ';' {
+		ret += ";"
+	}
+	ret += "\n} " + "else {\n" +
+		"\t" + strings.ReplaceAll(ite.elseStmt.pretty(), "\n", "\n\t")
+	if ret[len(ret)-1] != ';' {
+		ret += ";"
+	}
+	return ret + "\n}"
 }
 
 func (print Print) pretty() string {
-	panic("not yet implemented")
-	return ""
+	return "print " + print.exp.pretty()
 }
 
 // type check
@@ -260,13 +277,11 @@ func (x Num) pretty() string {
 }
 
 func (e Equal) pretty() string {
-	panic("not yet implemented")
-	return ""
+	return "(" + e[0].pretty() + "==" + e[1].pretty() + ")"
 }
 
 func (e Less) pretty() string {
-	panic("not yet implemented")
-	return ""
+	return "(" + e[0].pretty() + "<" + e[1].pretty() + ")"
 }
 
 func (e Mult) pretty() string {

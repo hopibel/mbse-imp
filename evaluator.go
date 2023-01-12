@@ -39,11 +39,11 @@ func (ite IfThenElse) eval(s ValState) {
 
 }
 
-func (w While) eval(s ValState) {
+func (e While) eval(s ValState) {
 	panic("not yet implemented")
 }
 
-func (print Print) eval(s ValState) {
+func (e Print) eval(s ValState) {
 	panic("not yet implemented")
 }
 

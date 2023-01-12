@@ -178,6 +178,25 @@ func (decl Decl) pretty() string {
 	return decl.lhs + " := " + decl.rhs.pretty()
 }
 
+func (assign Assign) pretty() string {
+	return assign.lhs + " = " + assign.rhs.pretty()
+}
+
+func (while While) pretty() string {
+	panic("not yet implemented")
+	return ""
+}
+
+func (ite IfThenElse) pretty() string {
+	panic("not yet implemented")
+	return ""
+}
+
+func (print Print) pretty() string {
+	panic("not yet implemented")
+	return ""
+}
+
 // type check
 
 func (stmt Seq) check(t TyState) bool {
@@ -203,6 +222,21 @@ func (a Assign) check(t TyState) bool {
 	return t[x] == a.rhs.infer(t)
 }
 
+func (w While) check(t TyState) bool {
+	panic("not yet implemented")
+	return false
+}
+
+func (ite IfThenElse) check(t TyState) bool {
+	panic("not yet implemented")
+	return false
+}
+
+func (print Print) check(t TyState) bool {
+	panic("not yet implemented")
+	return false
+}
+
 /////////////////////////
 // Exp instances
 
@@ -223,6 +257,16 @@ func (x Bool) pretty() string {
 
 func (x Num) pretty() string {
 	return strconv.Itoa(int(x))
+}
+
+func (e Equal) pretty() string {
+	panic("not yet implemented")
+	return ""
+}
+
+func (e Less) pretty() string {
+	panic("not yet implemented")
+	return ""
 }
 
 func (e Mult) pretty() string {

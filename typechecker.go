@@ -21,6 +21,16 @@ func (x Num) infer(t TyState) Type {
 	return TyInt
 }
 
+func (e Equal) infer(t TyState) Type {
+	panic("not yet implemented")
+	return TyIllTyped
+}
+
+func (e Less) infer(t TyState) Type {
+	panic("not yet implemented")
+	return TyIllTyped
+}
+
 func (e Mult) infer(t TyState) Type {
 	t1 := e[0].infer(t)
 	t2 := e[1].infer(t)

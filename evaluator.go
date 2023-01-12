@@ -15,7 +15,7 @@ func (decl Decl) eval(s ValState) {
 }
 
 func (assign Assign) eval(s ValState) {
-	v := assign.rhs.eval(s)
+	// v := assign.rhs.eval(s)
 	// TODO: lookup, overwrite
 }
 
@@ -39,7 +39,20 @@ func (ite IfThenElse) eval(s ValState) {
 
 }
 
+func (w While) eval(s ValState) {
+	panic("not yet implemented")
+}
+
+func (print Print) eval(s ValState) {
+	panic("not yet implemented")
+}
+
 // Expressions
+
+func (x Var) eval(s ValState) Val {
+	panic("not yet implemented")
+	return mkUndefined()
+}
 
 func (x Bool) eval(s ValState) Val {
 	return mkBool((bool)(x))
@@ -47,6 +60,16 @@ func (x Bool) eval(s ValState) Val {
 
 func (x Num) eval(s ValState) Val {
 	return mkInt((int)(x))
+}
+
+func (e Equal) eval(s ValState) Val {
+	panic("not yet implemented")
+	return mkUndefined()
+}
+
+func (e Less) eval(s ValState) Val {
+	panic("not yet implemented")
+	return mkUndefined()
 }
 
 func (e Mult) eval(s ValState) Val {

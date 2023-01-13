@@ -67,18 +67,18 @@ func showType(t Type) string {
 	return s
 }
 
-// Scopes and Environment
+// Scopes and Environment (ValState)
 // Scope is a mapping from variable names to values
-// Env is a stack of multiple Scopes
+// ValState is a stack of multiple Scopes
 type Scope map[string]Val
-type Env []Scope
+type ValState []Scope
 
-func newEnv() Env {
-	return Env{make(Scope)}
+func newValState() ValState {
+	return ValState{make(Scope)}
 }
 
 // lookup() traverses the stack and returns the first mapping found or undefined
-func (env Env) lookup(name string) Val {
+func (env ValState) lookup(name string) Val {
 	for i := len(env) - 1; i >= 0; i-- {
 		if val, ok := env[i][name]; ok {
 			return val
@@ -90,13 +90,13 @@ func (env Env) lookup(name string) Val {
 // declare new value mapping in current scope
 // masks previous declarations in outer scopes until current scope ends
 // overwrites previous declarations in same scope
-func (env Env) declare(name string, val Val) {
+func (env ValState) declare(name string, val Val) {
 	env[len(env)-1][name] = val
 }
 
 // assign new value to existing mapping
 // returns false if types don't match
-func (env Env) assign(name string, new_val Val) bool {
+func (env ValState) assign(name string, new_val Val) bool {
 	for i := len(env) - 1; i >= 0; i-- {
 		val, ok := env[i][name]
 		if ok && val.flag == new_val.flag {
@@ -107,12 +107,56 @@ func (env Env) assign(name string, new_val Val) bool {
 	return false
 }
 
-// TODO: needs to be stack for local scopes
-// Value State is a mapping from variable names to values
-type ValState map[string]Val
+// push a new scope onto the environment stack (ValState)
+// TODO: confirm this does what i think it does
+func (env *ValState) startBlock() {
+	*env = append(*env, make(Scope))
+}
 
-// Value State is a mapping from variable names to types
-type TyState map[string]Type
+// pop top-most scope from the environment stack unless it is the global (bottom) scope
+func (env *ValState) endBlock() {
+	*env = (*env)[:len(*env)-1]
+}
+
+// Value State is a mapping from variable names to values
+// type ValState map[string]Val
+
+// TyScope is a mapping from variable names to types
+// TyState is a stack of multiple TyScopes
+type TyScope map[string]Type
+type TyState []TyScope
+
+func newTyState() TyState {
+	return TyState{make(TyScope)}
+}
+
+// lookup() traverses the stack and returns the first mapping found or TyIllTyped
+func (t TyState) lookup(name string) Type {
+	for i := len(t) - 1; i >= 0; i-- {
+		if ty, ok := t[i][name]; ok {
+			return ty
+		}
+	}
+	return TyIllTyped
+}
+
+// declare new type mapping in current scope
+// masks previous declarations in outer scopes until current scope ends
+// overwrites previous declarations in same scope
+func (t TyState) declare(name string, ty Type) {
+	t[len(t)-1][name] = ty
+}
+
+// push a new scope onto the type environment stack (TyState)
+// TODO: confirm this does what i think it does
+func (ts *TyState) startBlock() {
+	*ts = append(*ts, make(TyScope))
+}
+
+// pop top-most scope from the type environment stack unless it is the global (bottom) scope
+func (ts *TyState) endBlock() {
+	*ts = (*ts)[:len(*ts)-1]
+}
 
 // Interface
 
@@ -212,46 +256,6 @@ func (ite IfThenElse) pretty() string {
 
 func (print Print) pretty() string {
 	return "print " + print.exp.pretty()
-}
-
-// type check
-
-func (stmt Seq) check(t TyState) bool {
-	if !stmt[0].check(t) {
-		return false
-	}
-	return stmt[1].check(t)
-}
-
-func (decl Decl) check(t TyState) bool {
-	ty := decl.rhs.infer(t)
-	if ty == TyIllTyped {
-		return false
-	}
-
-	x := (string)(decl.lhs)
-	t[x] = ty
-	return true
-}
-
-func (a Assign) check(t TyState) bool {
-	x := (string)(a.lhs)
-	return t[x] == a.rhs.infer(t)
-}
-
-func (w While) check(t TyState) bool {
-	panic("not yet implemented")
-	return false
-}
-
-func (ite IfThenElse) check(t TyState) bool {
-	panic("not yet implemented")
-	return false
-}
-
-func (print Print) check(t TyState) bool {
-	panic("not yet implemented")
-	return false
 }
 
 /////////////////////////

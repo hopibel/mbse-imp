@@ -45,14 +45,25 @@ func interpret_file(f string) {
 		fmt.Println("Failed to parse", f)
 	}
 	fmt.Println("Pretty print AST:")
-	fmt.Println(prog.pretty())
+	fmt.Print(prog.pretty(), "\n\n")
+
+	// typecheck program
+	ts := newTyState()
+	if prog.check(ts) {
+		fmt.Printf("Successfully type-checked %s\n\n", f)
+		// run program
+		vs := newValState()
+		prog.eval(vs)
+	} else {
+		fmt.Printf("%s contains type errors\n", f)
+	}
 }
 
 // Examples
 
 func run(e Exp) {
-	s := make(map[string]Val)
-	t := make(map[string]Type)
+	s := newValState()
+	t := newTyState()
 	fmt.Printf("\n ******* ")
 	fmt.Printf("\n %s", e.pretty())
 	fmt.Printf("\n %s", showVal(e.eval(s)))

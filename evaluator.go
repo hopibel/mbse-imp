@@ -9,14 +9,17 @@ import "fmt"
 // Maps are represented via pointers.
 // Hence, maps are passed by "reference" and the update is visible for the caller as well.
 func (decl Decl) eval(s ValState) {
-	v := decl.rhs.eval(s)
 	x := (string)(decl.lhs)
-	s[x] = v
+	v := decl.rhs.eval(s)
+	s.declare(x, v)
 }
 
 func (assign Assign) eval(s ValState) {
-	// v := assign.rhs.eval(s)
-	// TODO: lookup, overwrite
+	x := (string)(assign.lhs)
+	v := assign.rhs.eval(s)
+	if !s.assign(x, v) {
+		fmt.Printf("assign eval fail: type mismatch")
+	}
 }
 
 func (stmt Seq) eval(s ValState) {
@@ -27,10 +30,9 @@ func (stmt Seq) eval(s ValState) {
 func (ite IfThenElse) eval(s ValState) {
 	v := ite.cond.eval(s)
 	if v.flag == ValueBool {
-		switch {
-		case v.valB:
+		if v.valB {
 			ite.thenStmt.eval(s)
-		case !v.valB:
+		} else {
 			ite.elseStmt.eval(s)
 		}
 	} else {
@@ -40,7 +42,17 @@ func (ite IfThenElse) eval(s ValState) {
 }
 
 func (e While) eval(s ValState) {
-	panic("not yet implemented")
+	v := e.cond.eval(s)
+	if v.flag != ValueBool {
+		fmt.Printf("while eval fail: condition does not return a boolean")
+		return
+	}
+	for v.valB {
+		s.startBlock()
+		e.body.eval(s)
+		s.endBlock()
+		v = e.cond.eval(s)
+	}
 }
 
 func (e Print) eval(s ValState) {

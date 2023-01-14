@@ -18,7 +18,7 @@ func (assign Assign) eval(s ValState) {
 	x := (string)(assign.lhs)
 	v := assign.rhs.eval(s)
 	if !s.assign(x, v) {
-		fmt.Printf("assign eval fail: type mismatch")
+		fmt.Printf("assign eval fail: tried to assign %s to %s\n", showValType(v), showValType(s.lookup(x)))
 	}
 }
 
@@ -30,13 +30,15 @@ func (stmt Seq) eval(s ValState) {
 func (ite IfThenElse) eval(s ValState) {
 	v := ite.cond.eval(s)
 	if v.flag == ValueBool {
+		s.startBlock()
 		if v.valB {
 			ite.thenStmt.eval(s)
 		} else {
 			ite.elseStmt.eval(s)
 		}
+		s.endBlock()
 	} else {
-		fmt.Printf("if-then-else eval fail")
+		fmt.Printf("if-then-else eval fail: condition has type %s instead of boolean\n", showValType(v))
 	}
 
 }
@@ -44,9 +46,10 @@ func (ite IfThenElse) eval(s ValState) {
 func (e While) eval(s ValState) {
 	v := e.cond.eval(s)
 	if v.flag != ValueBool {
-		fmt.Printf("while eval fail: condition does not return a boolean")
+		fmt.Printf("while eval fail: condition has type %s instead of boolean\n", showValType(v))
 		return
 	}
+	// evaluate body in a new scope as long as condition holds
 	for v.valB {
 		s.startBlock()
 		e.body.eval(s)
@@ -56,14 +59,14 @@ func (e While) eval(s ValState) {
 }
 
 func (e Print) eval(s ValState) {
-	panic("not yet implemented")
+	x := e.exp.eval(s)
+	fmt.Println(showVal(x))
 }
 
 // Expressions
 
 func (x Var) eval(s ValState) Val {
-	panic("not yet implemented")
-	return mkUndefined()
+	return s.lookup(string(x))
 }
 
 func (x Bool) eval(s ValState) Val {
@@ -75,12 +78,25 @@ func (x Num) eval(s ValState) Val {
 }
 
 func (e Equal) eval(s ValState) Val {
-	panic("not yet implemented")
+	n1 := e[0].eval(s)
+	n2 := e[1].eval(s)
+	if n1.flag == n2.flag && n1.flag != Undefined {
+		switch n1.flag {
+		case ValueBool:
+			return mkBool(n1.valB == n2.valB)
+		case ValueInt:
+			return mkBool(n1.valI == n2.valI)
+		}
+	}
 	return mkUndefined()
 }
 
 func (e Less) eval(s ValState) Val {
-	panic("not yet implemented")
+	n1 := e[0].eval(s)
+	n2 := e[1].eval(s)
+	if n1.flag == ValueInt && n2.flag == ValueInt {
+		return mkBool(n1.valI < n2.valI)
+	}
 	return mkUndefined()
 }
 
@@ -104,24 +120,32 @@ func (e Plus) eval(s ValState) Val {
 
 func (e And) eval(s ValState) Val {
 	b1 := e[0].eval(s)
-	b2 := e[1].eval(s)
-	switch {
-	case b1.flag == ValueBool && !b1.valB:
-		return mkBool(false)
-	case b1.flag == ValueBool && b2.flag == ValueBool:
-		return mkBool(b1.valB && b2.valB)
+	if b1.flag == ValueBool {
+		// short circuit: false && _ => false
+		if !b1.valB {
+			return mkBool(false)
+		}
+		b2 := e[1].eval(s)
+		if b2.flag == ValueBool {
+			// true && V => V
+			return mkBool(b2.valB)
+		}
 	}
 	return mkUndefined()
 }
 
 func (e Or) eval(s ValState) Val {
 	b1 := e[0].eval(s)
-	b2 := e[1].eval(s)
-	switch {
-	case b1.flag == ValueBool && b1.valB:
-		return mkBool(true)
-	case b1.flag == ValueBool && b2.flag == ValueBool:
-		return mkBool(b1.valB || b2.valB)
+	if b1.flag == ValueBool {
+		// short circuit: true || _ => true
+		if b1.valB {
+			return mkBool(true)
+		}
+		b2 := e[1].eval(s)
+		if b2.flag == ValueBool {
+			// false || V => V
+			return mkBool(b2.valB)
+		}
 	}
 	return mkUndefined()
 }

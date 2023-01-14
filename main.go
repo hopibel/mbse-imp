@@ -34,23 +34,28 @@ exp ::= 0 | 1 | -1 | ...     -- Integers
 
 // Interpreter
 
-func interpret_file(f string) {
-	lexer := newLexer(f)
-	lexer.lex_file()
-	fmt.Println()
+func interpret_file(f string, verbose bool) {
+	if verbose {
+		lexer := newLexer(f)
+		lexer.lex_file()
+		fmt.Println()
+	}
 	parser := newParser()
 	prog, err := parser.parse_file(f)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println("Failed to parse", f)
 	}
-	fmt.Println("Pretty print AST:")
-	fmt.Print(prog.pretty(), "\n\n")
-
+	if verbose {
+		fmt.Println("Pretty print AST:")
+		fmt.Print(prog.pretty(), "\n\n")
+	}
 	// typecheck program
 	ts := newTyState()
 	if prog.check(ts) {
-		fmt.Printf("Successfully type-checked %s\n\n", f)
+		if verbose {
+			fmt.Printf("Successfully type-checked %s\n\n", f)
+		}
 		// run program
 		vs := newValState()
 		prog.eval(vs)
@@ -59,44 +64,27 @@ func interpret_file(f string) {
 	}
 }
 
-// Examples
-
-func run(e Exp) {
-	s := newValState()
-	t := newTyState()
-	fmt.Printf("\n ******* ")
-	fmt.Printf("\n %s", e.pretty())
-	fmt.Printf("\n %s", showVal(e.eval(s)))
-	fmt.Printf("\n %s", showType(e.infer(t)))
-}
-
-func ex1() {
-	ast := plus(mult(number(1), number(2)), number(0))
-
-	run(ast)
-}
-
-func ex2() {
-	ast := and(boolean(false), number(0))
-	run(ast)
-}
-
-func ex3() {
-	ast := or(boolean(false), number(0))
-	run(ast)
-}
-
 func main() {
-	// ex1()
-	// ex2()
-	// ex3()
-	// fmt.Print("\n\n")
-
+	var verbose bool
+	var fname string
 	args := os.Args
-	if len(args) != 2 {
-		fmt.Printf("usage: %s <filename>\n", args[0])
+	if len(args) == 2 {
+		// mbse-imp <file>
+		verbose = false
+		fname = args[1]
+	} else if len(args) == 3 && (args[1] == "-v" || args[2] == "-v") {
+		// -v: verbose
+		if args[1] == "-v" {
+			verbose = true
+			fname = args[2]
+		} else {
+			verbose = true
+			fname = args[1]
+		}
+	} else {
+		fmt.Printf("usage: %s [-v] <filename>\n", args[0])
 		os.Exit(1)
 	}
 
-	interpret_file(args[1])
+	interpret_file(fname, verbose)
 }

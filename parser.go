@@ -331,7 +331,7 @@ func newParser() *Parser {
 }
 
 func (p *Parser) err_expected(what string) error {
-	return fmt.Errorf("expected %s on line %d, found %s", what, p.lexer.line, p.lexer.tok.String())
+	return fmt.Errorf("expected %s on line %d, found \"%s\"", what, p.lexer.line, p.lexer.tok.String())
 }
 
 func (p *Parser) parse_file(f string) (Program, error) {

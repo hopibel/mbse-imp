@@ -44,6 +44,17 @@ func showVal(v Val) string {
 	return s
 }
 
+func showValType(v Val) string {
+	switch v.flag {
+	case ValueInt:
+		return "Int"
+	case ValueBool:
+		return "Bool"
+	default:
+		return "Undefined"
+	}
+}
+
 // Types
 
 type Type int

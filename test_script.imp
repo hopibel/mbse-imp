@@ -9,8 +9,8 @@ while (x < y) {
 
     x = x + 2*1 + -1;
 };
-
-x := false;
+// comment
+x := false; // inline comment
 y := 1;
 
 if x {

@@ -79,13 +79,15 @@ type Lexer struct {
 	line    int          // current line
 }
 
-func newLexer(f string) *Lexer {
-	code, err := os.ReadFile(f)
-	if err != nil {
-		panic(err)
-	}
-	c := string(code)
-	return &Lexer{c, 0, TokEOF, bytes.Buffer{}, 1}
+func newFileLexer(f string) *Lexer {
+	code, _ := os.ReadFile(f)
+	return newLexer(string(code))
+}
+
+func newLexer(code string) *Lexer {
+	lex := &Lexer{code, 0, TokEOF, bytes.Buffer{}, 1}
+	lex.next()
+	return lex
 }
 
 // Lexer compiled regexes
@@ -96,6 +98,7 @@ var rInt = regexp.MustCompile(`^-?\d+`)
 var rBool = regexp.MustCompile(`^(true|false)`)
 var rIdent = regexp.MustCompile(`^[a-z]\w*`)
 var rOperator = regexp.MustCompile(`^(:=|=[^=]|\+|\*|\|\||&&|!|==|<)`) // TODO: test all operators
+var rComment = regexp.MustCompile(`^//[^\n]*`)
 
 // next token
 func (l *Lexer) next() (bool, error) {
@@ -129,6 +132,8 @@ func (l *Lexer) next() (bool, error) {
 	case l.lex_operator(): // operators
 	case l.lex_brace(): // parens and curly braces
 	case l.lex_semi(): // semicolon
+	case l.lex_comment(): // "//" marks rest of line as comment
+		return l.next()
 	default:
 		// TODO: return informative error message https://go.dev/doc/tutorial/handle-errors
 		panic(fmt.Sprintf("Lexer.next: unexpected character on line %d: \"%c\"", l.line, l.s[l.cursor]))
@@ -263,6 +268,17 @@ func (l *Lexer) lex_semi() bool {
 	return false
 }
 
+// ignore everything from // to end of line
+func (l *Lexer) lex_comment() bool {
+	s := l.s[l.cursor:]
+	loc := rComment.FindStringIndex(s)
+	if loc == nil {
+		return false
+	}
+	l.cursor += loc[1]
+	return true
+}
+
 // debug method to test tokenizer/lexer
 func (l *Lexer) lex_file() {
 	fmt.Println("Token stream:")
@@ -335,8 +351,12 @@ func (p *Parser) err_expected(what string) error {
 }
 
 func (p *Parser) parse_file(f string) (Program, error) {
-	p.lexer = newLexer(f)
-	p.lexer.next()
+	p.lexer = newFileLexer(f)
+	return p.parse_prog()
+}
+
+func (p *Parser) parse_string(code string) (Program, error) {
+	p.lexer = newLexer(code)
 	return p.parse_prog()
 }
 

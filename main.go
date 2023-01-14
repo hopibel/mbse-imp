@@ -36,7 +36,7 @@ exp ::= 0 | 1 | -1 | ...     -- Integers
 
 func interpret_file(f string, verbose bool) {
 	if verbose {
-		lexer := newLexer(f)
+		lexer := newFileLexer(f)
 		lexer.lex_file()
 		fmt.Println()
 	}

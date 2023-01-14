@@ -2,7 +2,7 @@ package main
 
 // Type inferencer/checker
 
-// Expressions
+// Expressions type inference
 
 func (x Var) infer(t TyState) Type {
 	return t.lookup(string(x))
@@ -70,7 +70,14 @@ func (e Or) infer(t TyState) Type {
 	return TyIllTyped
 }
 
-// Statements
+func (e Not) infer(t TyState) Type {
+	if e.exp.infer(t) == TyBool {
+		return TyBool
+	}
+	return TyIllTyped
+}
+
+// Statement type checking
 
 func (stmt Seq) check(t TyState) bool {
 	if !stmt[0].check(t) {

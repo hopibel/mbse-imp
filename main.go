@@ -41,7 +41,7 @@ func interpret_file(f string, verbose bool) {
 		fmt.Println()
 	}
 	parser := newParser()
-	prog, err := parser.parse_file(f)
+	prog, err := parser.parse_fromfile(f)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println("Failed to parse", f)

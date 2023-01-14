@@ -149,3 +149,11 @@ func (e Or) eval(s ValState) Val {
 	}
 	return mkUndefined()
 }
+
+func (e Not) eval(s ValState) Val {
+	val := e.exp.eval(s)
+	if val.flag == ValueBool {
+		return mkBool(!val.valB)
+	}
+	return mkUndefined()
+}

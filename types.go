@@ -216,7 +216,7 @@ type Plus [2]Exp
 type Mult [2]Exp
 type Or [2]Exp
 type And [2]Exp
-type Not Exp
+type Not struct{ exp Exp }
 type Equal [2]Exp
 type Less [2]Exp
 type Var string
@@ -345,4 +345,8 @@ func (e Or) pretty() string {
 	x += ")"
 
 	return x
+}
+
+func (e Not) pretty() string {
+	return "!" + e.exp.pretty()
 }

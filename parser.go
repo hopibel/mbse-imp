@@ -135,8 +135,7 @@ func (l *Lexer) next() (bool, error) {
 	case l.lex_comment(): // "//" marks rest of line as comment
 		return l.next()
 	default:
-		// TODO: return informative error message https://go.dev/doc/tutorial/handle-errors
-		panic(fmt.Sprintf("Lexer.next: unexpected character on line %d: \"%c\"", l.line, l.s[l.cursor]))
+		return false, fmt.Errorf("unexpected character on line %d: \"%c\"", l.line, l.s[l.cursor])
 	}
 
 	return true, nil
@@ -350,12 +349,12 @@ func (p *Parser) err_expected(what string) error {
 	return fmt.Errorf("expected %s on line %d, found \"%s\"", what, p.lexer.line, p.lexer.tok.String())
 }
 
-func (p *Parser) parse_file(f string) (Program, error) {
+func (p *Parser) parse_fromfile(f string) (Program, error) {
 	p.lexer = newFileLexer(f)
 	return p.parse_prog()
 }
 
-func (p *Parser) parse_string(code string) (Program, error) {
+func (p *Parser) parse_fromstring(code string) (Program, error) {
 	p.lexer = newLexer(code)
 	return p.parse_prog()
 }
@@ -400,7 +399,6 @@ func (p *Parser) parse_seq2(stmt Stmt) (Stmt, error) {
 }
 
 func (p *Parser) parse_stmt() (Stmt, error) {
-	// TODO: impl missing
 	switch p.lexer.tokType {
 	case TokName:
 		lhs := p.lexer.tok.String()
@@ -581,7 +579,7 @@ func (p *Parser) parse_factor() (Exp, error) {
 	case TokNot:
 		p.lexer.next()
 		factor, err := p.parse_factor()
-		return Not(factor), err
+		return Not{factor}, err
 	case TokParenOpen:
 		p.lexer.next()
 		exp, err := p.parse_exp()
@@ -599,12 +597,31 @@ func (p *Parser) parse_factor() (Exp, error) {
 
 // Helper functions to build ASTs by hand
 
-func number(x int) Exp {
-	return Num(x)
+// Statements
+
+// combine statements into nested sequences
+func seq(stmt Stmt, rest ...Stmt) Stmt {
+	if rest == nil {
+		return stmt
+	} else if len(rest) > 1 {
+		return Seq{stmt, seq(rest[0], rest[1:]...)}
+	} else {
+		return Seq{stmt, rest[0]}
+	}
 }
 
-func boolean(x bool) Exp {
-	return Bool(x)
+func printStmt(x Exp) Stmt {
+	return Print{x}
+}
+
+// Expressions
+
+func equal(x, y Exp) Exp {
+	return Equal{x, y}
+}
+
+func less(x, y Exp) Exp {
+	return Less{x, y}
 }
 
 func plus(x, y Exp) Exp {
@@ -627,4 +644,8 @@ func and(x, y Exp) Exp {
 
 func or(x, y Exp) Exp {
 	return (Or)([2]Exp{x, y})
+}
+
+func not(x Exp) Exp {
+	return Not{x}
 }

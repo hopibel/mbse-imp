@@ -11,4 +11,7 @@ go run . <imp script>
 # Alternatively:
 go build
 ./mbse-imp <imp script>
+
+# Running tests
+go test .
 ```

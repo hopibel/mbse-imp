@@ -562,16 +562,18 @@ func (p *Parser) parse_factor() (Exp, error) {
 		p.lexer.next()
 		return Num(num), nil
 	case TokBool:
+		var ret Exp
 		val := p.lexer.tok.String()
-		p.lexer.next()
 		switch val {
 		case "true":
-			return Bool(true), nil
+			ret = Bool(true)
 		case "false":
-			return Bool(false), nil
+			ret = Bool(false)
 		default:
-			panic("should not reach") // lexer already checked true/false
+			return Bool(false), p.err_expected("boolean value")
 		}
+		p.lexer.next()
+		return ret, nil
 	case TokName:
 		name := Var(p.lexer.tok.String())
 		p.lexer.next()

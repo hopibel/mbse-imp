@@ -55,6 +55,19 @@ func showValType(v Val) string {
 	}
 }
 
+// for tests
+func (v Val) equal(other Val) bool {
+	switch v.flag {
+	case ValueInt:
+		return other.flag == ValueInt && v.valI == other.valI
+	case ValueBool:
+		return other.flag == ValueBool && v.valB == other.valB
+	case Undefined:
+		return other.flag == Undefined
+	}
+	return false
+}
+
 // Types
 
 type Type int
@@ -98,10 +111,20 @@ func (env ValState) lookup(name string) Val {
 	return mkUndefined()
 }
 
-// declare new value mapping in current scope
-// masks previous declarations in outer scopes until current scope ends
-// overwrites previous declarations in same scope
+// if a mapping with the same type exists, update its value
+// otherwise create a new mapping in the current scope.
+// if var is declared multiple times, only the most recent is valid
 func (env ValState) declare(name string, val Val) {
+	// overwrite existing if same type
+	for i := len(env) - 1; i >= 0; i-- {
+		if old_val, ok := env[i][name]; ok {
+			if val.flag == old_val.flag {
+				env[i][name] = val
+				return
+			}
+		}
+	}
+	// otherwise declare new/overwrite in current scope
 	env[len(env)-1][name] = val
 }
 
@@ -110,16 +133,20 @@ func (env ValState) declare(name string, val Val) {
 func (env ValState) assign(name string, new_val Val) bool {
 	for i := len(env) - 1; i >= 0; i-- {
 		val, ok := env[i][name]
-		if ok && val.flag == new_val.flag {
-			env[i][name] = new_val
-			return true
+		if ok {
+			if val.flag == new_val.flag {
+				env[i][name] = new_val
+				return true
+			}
+			// assigning wrong type is undefined behavior
+			env[i][name] = mkUndefined()
+			return false
 		}
 	}
 	return false
 }
 
 // push a new scope onto the environment stack (ValState)
-// TODO: confirm this does what i think it does
 func (env *ValState) startBlock() {
 	*env = append(*env, make(Scope))
 }

@@ -1,0 +1,31 @@
+// prints out all primes less than max
+max := 100;
+i := 2;
+while i < max {
+    n := i;
+    // test all values from 2 to n-1
+    j := 2;
+    isPrime := true;
+    while j < n {
+        // calculate remainder via repeated subtraction
+        rem := n;
+        d := j * -1; // negate for subtraction
+        while 0 < rem {
+            rem = rem + d;
+        };
+
+        // rem==0 means n is not prime
+        if rem == 0 {
+            isPrime = false;
+            j = n; // break the loop
+        } else {
+            j = j + 1;
+        };
+    };
+    if isPrime {
+        print n;
+        i = i + 1;
+    } else {
+        i = i + 1;
+    };
+};
